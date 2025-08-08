@@ -1,0 +1,110 @@
+import React, { useState } from 'react';
+import { CheckCircle2, Circle, MessageSquare, Phone, Coffee, Star } from 'lucide-react';
+import { Goal } from '../types';
+
+interface TodaysGoalsProps {
+  goals: Goal[];
+  onUpdateGoal: (goal: Goal) => void;
+}
+
+const TodaysGoals: React.FC<TodaysGoalsProps> = ({ goals, onUpdateGoal }) => {
+  const getIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'MessageSquare': return MessageSquare;
+      case 'Coffee': return Coffee;
+      case 'Phone': return Phone;
+      case 'Star': return Star;
+      default: return Circle;
+    }
+  };
+
+  const toggleGoal = (id: number) => {
+    const goal = goals.find(g => g.id === id);
+    if (goal) {
+      onUpdateGoal({ ...goal, completed: !goal.completed });
+    }
+  };
+
+  const completedCount = goals.filter(goal => goal.completed).length;
+  const progressPercentage = (completedCount / goals.length) * 100;
+
+  return (
+    <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-semibold text-gray-900">Today's Networking Goals</h3>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium text-gray-600">
+            {completedCount}/{goals.length} completed
+          </span>
+          <div className="w-12 h-2 bg-gray-200 rounded-full">
+            <div 
+              className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {goals.map((goal) => {
+          const Icon = getIcon(goal.icon);
+          return (
+            <div 
+              key={goal.id}
+              className={`flex items-start space-x-3 p-4 rounded-lg border transition-all duration-200 hover:shadow-md cursor-pointer ${
+                goal.completed 
+                  ? 'bg-green-50 border-green-200 opacity-75' 
+                  : 'bg-white border-gray-200 hover:border-blue-300'
+              }`}
+              onClick={() => toggleGoal(goal.id)}
+            >
+              <button className="flex-shrink-0 mt-0.5">
+                {goal.completed ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                ) : (
+                  <Circle className="w-5 h-5 text-gray-400 hover:text-blue-500" />
+                )}
+              </button>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2 mb-1">
+                  <Icon className={`w-4 h-4 ${
+                    goal.priority === 'high' ? 'text-red-500' : 'text-blue-500'
+                  }`} />
+                  <span className={`text-sm font-medium ${
+                    goal.completed ? 'line-through text-gray-500' : 'text-gray-900'
+                  }`}>
+                    {goal.text}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className={`px-2 py-1 text-xs rounded-full ${
+                    goal.priority === 'high' 
+                      ? 'bg-red-100 text-red-700' 
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {goal.priority} priority
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {completedCount === goals.length && (
+        <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="w-5 h-5 text-green-500" />
+            <span className="font-medium text-green-700">All goals completed! 🎉</span>
+          </div>
+          <p className="text-sm text-green-600 mt-1">
+            Amazing work! You're building momentum towards your dream job.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TodaysGoals;
