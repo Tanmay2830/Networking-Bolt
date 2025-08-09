@@ -7,7 +7,7 @@ export interface Contact {
   email: string;
   phone?: string;
   linkedinUrl?: string;
-  priority: number;
+  priority: number; // 1-100 scale
   lastContact: string;
   tags: string[];
   status: 'active' | 'needs_followup' | 'cold';
@@ -16,6 +16,7 @@ export interface Contact {
   addedDate: string;
   industry: string;
   expertise: string[];
+  lastInteractionDate?: Date;
 }
 
 export interface Goal {
@@ -26,6 +27,8 @@ export interface Goal {
   priority: 'high' | 'medium' | 'low';
   dueDate?: string;
   category: string;
+  createdDate: string;
+  completedDate?: string;
 }
 
 export interface Event {
@@ -49,6 +52,8 @@ export interface Achievement {
   icon: string;
   earnedDate?: string;
   category: string;
+  requirement?: number;
+  progress?: number;
 }
 
 export interface Resource {
@@ -70,4 +75,21 @@ export interface NetworkingStats {
   currentStreak: number;
   longestStreak: number;
   achievements: number;
+  lastActivityDate?: string;
+  streakHistory: { date: string; activity: string }[];
+  weeklyGoals: number;
+  monthlyGoals: number;
+}
+
+export interface StreakData {
+  currentStreak: number;
+  longestStreak: number;
+  lastActivityDate: string;
+  streakHistory: { date: string; activity: string; type: 'contact' | 'meeting' | 'goal' }[];
+}
+
+export interface DailyGoals {
+  date: string;
+  goals: Goal[];
+  generated: boolean;
 }

@@ -27,7 +27,7 @@ const Contacts: React.FC<ContactsProps> = ({
                          contact.role.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesFilter = filter === 'all' ||
-                         (filter === 'high_priority' && contact.priority >= 8) ||
+                         (filter === 'high_priority' && contact.priority >= 80) ||
                          (filter === 'needs_followup' && contact.status === 'needs_followup') ||
                          (filter === 'recent' && contact.lastContact.includes('day'));
     
@@ -67,8 +67,8 @@ const Contacts: React.FC<ContactsProps> = ({
   };
 
   const getPriorityColor = (priority: number) => {
-    if (priority >= 8) return 'text-red-600 bg-red-50';
-    if (priority >= 6) return 'text-orange-600 bg-orange-50';
+    if (priority >= 80) return 'text-red-600 bg-red-50';
+    if (priority >= 60) return 'text-orange-600 bg-orange-50';
     return 'text-green-600 bg-green-50';
   };
 
@@ -150,7 +150,7 @@ const Contacts: React.FC<ContactsProps> = ({
               <div className="flex flex-col items-end space-y-2">
                 <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(contact.priority)}`}>
                   <Star className="w-3 h-3" />
-                  <span>Priority {contact.priority}</span>
+                  <span>{contact.priority}/100</span>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(contact.status)}`}>
                   {contact.status.replace('_', ' ')}

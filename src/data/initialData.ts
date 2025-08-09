@@ -9,7 +9,7 @@ export const initialContacts: Contact[] = [
     location: 'Mountain View, CA',
     email: 'sarah.chen@google.com',
     linkedinUrl: 'https://linkedin.com/in/sarahchen',
-    priority: 9,
+    priority: 90,
     lastContact: '2 days ago',
     tags: ['AI/ML', 'Alumni', 'Recruiter Contact'],
     status: 'active',
@@ -26,7 +26,7 @@ export const initialContacts: Contact[] = [
     role: 'Principal Engineer',
     location: 'Seattle, WA',
     email: 'raj.patel@microsoft.com',
-    priority: 8,
+    priority: 85,
     lastContact: '1 week ago',
     tags: ['Cloud', 'Indian Network', 'Senior'],
     status: 'active',
@@ -43,7 +43,7 @@ export const initialContacts: Contact[] = [
     role: 'Product Manager',
     location: 'New York, NY',
     email: 'emily.rodriguez@amazon.com',
-    priority: 7,
+    priority: 75,
     lastContact: '3 weeks ago',
     tags: ['Product', 'NYC', 'Startup Background'],
     status: 'needs_followup',
@@ -63,7 +63,8 @@ export const initialGoals: Goal[] = [
     icon: 'MessageSquare',
     priority: 'high',
     category: 'outreach',
-    dueDate: '2025-01-15'
+    dueDate: '2025-01-15',
+    createdDate: '2025-01-15'
   },
   {
     id: '2',
@@ -72,7 +73,8 @@ export const initialGoals: Goal[] = [
     icon: 'Coffee',
     priority: 'medium',
     category: 'meeting',
-    dueDate: '2025-01-16'
+    dueDate: '2025-01-16',
+    createdDate: '2025-01-15'
   },
   {
     id: '3',
@@ -81,7 +83,8 @@ export const initialGoals: Goal[] = [
     icon: 'Phone',
     priority: 'high',
     category: 'follow-up',
-    dueDate: '2025-01-15'
+    dueDate: '2025-01-15',
+    createdDate: '2025-01-15'
   }
 ];
 
@@ -129,7 +132,9 @@ export const initialAchievements: Achievement[] = [
     earned: true,
     icon: '🔥',
     earnedDate: '2024-12-15',
-    category: 'streak'
+    category: 'streak',
+    requirement: 7,
+    progress: 7
   },
   {
     id: '3',
@@ -137,7 +142,9 @@ export const initialAchievements: Achievement[] = [
     description: 'Scheduled 10 coffee chats',
     earned: false,
     icon: '☕',
-    category: 'meetings'
+    category: 'meetings',
+    requirement: 10,
+    progress: 3
   }
 ];
 

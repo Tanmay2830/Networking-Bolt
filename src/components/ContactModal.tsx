@@ -241,12 +241,12 @@ const ContactModal: React.FC<ContactModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Priority Score (1-10)
+                Priority Score (1-100)
               </label>
               <input
                 type="number"
                 min="1"
-                max="10"
+                max="100"
                 value={formData.priority}
                 onChange={(e) => setFormData(prev => ({ ...prev, priority: parseInt(e.target.value) }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

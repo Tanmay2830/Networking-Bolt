@@ -15,7 +15,7 @@ const WeekendRecommendations: React.FC<WeekendRecommendationsProps> = ({
   const recommendations = contacts
     .filter(contact => {
       const daysSinceContact = contact.lastContact.includes('week') || contact.lastContact.includes('month');
-      return daysSinceContact && contact.priority >= 7;
+      return daysSinceContact && contact.priority >= 70;
     })
     .sort((a, b) => b.priority - a.priority)
     .slice(0, 3)
@@ -34,7 +34,7 @@ const WeekendRecommendations: React.FC<WeekendRecommendationsProps> = ({
     if (contact.tags.includes('Alumni')) {
       return 'Alumni connection - leverage shared background';
     }
-    if (contact.priority >= 9) {
+    if (contact.priority >= 90) {
       return 'High priority contact - maintain strong relationship';
     }
     return 'Good opportunity to strengthen professional relationship';
@@ -63,7 +63,7 @@ const WeekendRecommendations: React.FC<WeekendRecommendationsProps> = ({
               </div>
               <div className="flex items-center space-x-1">
                 <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                  Priority {person.priority}/10
+                  Priority {person.priority}/100
                 </span>
               </div>
             </div>

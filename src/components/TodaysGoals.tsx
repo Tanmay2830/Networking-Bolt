@@ -1,28 +1,78 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Circle, MessageSquare, Phone, Coffee, Star } from 'lucide-react';
+import { CheckCircle2, Circle, MessageSquare, Phone, Coffee, Star, Plus, Edit, Trash2 } from 'lucide-react';
 import { Goal } from '../types';
+import { useDailyGoals } from '../hooks/useDailyGoals';
+import { useStreak } from '../hooks/useStreak';
+import GoalModal from './GoalModal';
 
 interface TodaysGoalsProps {
-  goals: Goal[];
-  onUpdateGoal: (goal: Goal) => void;
+  contacts: any[];
 }
 
-const TodaysGoals: React.FC<TodaysGoalsProps> = ({ goals, onUpdateGoal }) => {
+const TodaysGoals: React.FC<TodaysGoalsProps> = ({ contacts }) => {
+  const { getTodaysGoals, updateTodaysGoals, addCustomGoal } = useDailyGoals();
+  const { addActivity } = useStreak();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<Goal | undefined>();
+  
+  const goals = getTodaysGoals(contacts);
+
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'MessageSquare': return MessageSquare;
       case 'Coffee': return Coffee;
       case 'Phone': return Phone;
       case 'Star': return Star;
+      case 'UserPlus': return Plus;
+      case 'Edit': return Edit;
+      case 'Search': return MessageSquare;
+      case 'Share': return MessageSquare;
+      case 'Target': return Star;
       default: return Circle;
     }
   };
 
-  const toggleGoal = (id: number) => {
+  const toggleGoal = (id: string) => {
     const goal = goals.find(g => g.id === id);
     if (goal) {
-      onUpdateGoal({ ...goal, completed: !goal.completed });
+      const updatedGoal = { 
+        ...goal, 
+        completed: !goal.completed,
+        completedDate: !goal.completed ? new Date().toISOString().split('T')[0] : undefined
+      };
+      
+      const updatedGoals = goals.map(g => g.id === id ? updatedGoal : g);
+      updateTodaysGoals(updatedGoals);
+      
+      // Add to streak if completing a goal
+      if (!goal.completed) {
+        addActivity(`Completed goal: ${goal.text}`, 'goal');
+      }
     }
+  };
+
+  const handleAddGoal = () => {
+    setSelectedGoal(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleEditGoal = (goal: Goal) => {
+    setSelectedGoal(goal);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveGoal = (goal: Goal) => {
+    if (selectedGoal) {
+      const updatedGoals = goals.map(g => g.id === goal.id ? goal : g);
+      updateTodaysGoals(updatedGoals);
+    } else {
+      updateTodaysGoals([...goals, goal]);
+    }
+  };
+
+  const handleDeleteGoal = (goalId: string) => {
+    const updatedGoals = goals.filter(g => g.id !== goalId);
+    updateTodaysGoals(updatedGoals);
   };
 
   const completedCount = goals.filter(goal => goal.completed).length;
@@ -31,8 +81,18 @@ const TodaysGoals: React.FC<TodaysGoalsProps> = ({ goals, onUpdateGoal }) => {
   return (
     <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-semibold text-gray-900">Today's Networking Goals</h3>
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900">Today's Networking Goals</h3>
+          <p className="text-sm text-gray-500">AI-generated daily recommendations</p>
+        </div>
         <div className="flex items-center space-x-2">
+          <button
+            onClick={handleAddGoal}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Add custom goal"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
           <span className="text-sm font-medium text-gray-600">
             {completedCount}/{goals.length} completed
           </span>
@@ -87,6 +147,29 @@ const TodaysGoals: React.FC<TodaysGoalsProps> = ({ goals, onUpdateGoal }) => {
                   </span>
                 </div>
               </div>
+              
+              <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditGoal(goal);
+                  }}
+                  className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                >
+                  <Edit className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm('Delete this goal?')) {
+                      handleDeleteGoal(goal.id);
+                    }
+                  }}
+                  className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           );
         })}
@@ -103,6 +186,14 @@ const TodaysGoals: React.FC<TodaysGoalsProps> = ({ goals, onUpdateGoal }) => {
           </p>
         </div>
       )}
+      
+      <GoalModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        goal={selectedGoal}
+        onSave={handleSaveGoal}
+        onDelete={handleDeleteGoal}
+      />
     </div>
   );
 };
