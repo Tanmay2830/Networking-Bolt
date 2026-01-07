@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocalStorage } from './useLocalStorage';
+import { useAI } from './useAI';
 import { Goal } from '../types';
 
 interface DailyGoals {
