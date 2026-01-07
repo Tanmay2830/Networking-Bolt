@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Mail, Calendar, Settings, LogOut, Edit, Save, X } from 'lucide-react';
+import { User, Mail, Calendar, Settings, LogOut, CreditCard as Edit, Save, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 interface UserProfileProps {
