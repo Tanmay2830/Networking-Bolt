@@ -45,10 +45,7 @@ const LoginForm: React.FC = () => {
 
   const handleDemoLogin = async () => {
     setError('');
-    const result = await signIn('admin@networkmaster.com', 'admin123');
-    if (!result.success) {
-      setError(result.error || 'Demo login failed');
-    }
+    setError('Demo login is not available. Please create an account or sign in with your existing credentials.');
   };
 
   return (
