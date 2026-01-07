@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Circle, MessageSquare, Phone, Coffee, Star, Plus, Edit, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, MessageSquare, Phone, Coffee, Star, Plus, CreditCard as Edit, Trash2 } from 'lucide-react';
 import { Goal } from '../types';
 import { useDailyGoals } from '../hooks/useDailyGoals';
 import { useStreak } from '../hooks/useStreak';
