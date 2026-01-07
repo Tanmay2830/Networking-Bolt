@@ -154,11 +154,14 @@ export function useSupabaseData() {
   }, [isAuthenticated, user]);
 
   const fetchAllData = async () => {
-    if (!user || !supabase) return;
+    if (!user || !supabase) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
-      
+
       // Fetch contacts
       const { data: contactsData } = await supabase
         .from('contacts')
