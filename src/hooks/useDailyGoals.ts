@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useLocalStorage } from './useLocalStorage';
-import { useAI } from './useAI';
 import { Goal } from '../types';
 
 interface DailyGoals {
@@ -11,9 +10,8 @@ interface DailyGoals {
 
 export function useDailyGoals() {
   const [dailyGoals, setDailyGoals] = useLocalStorage<DailyGoals[]>('networkmaster-daily-goals', []);
-  const { generateDailyGoals } = useAI();
 
-  const generateDailyGoalsSync = (contacts: any[]): Goal[] => {
+  const generateDailyGoals = (contacts: any[]): Goal[] => {
     const today = new Date().toISOString().split('T')[0];
     
     // AI-powered goal generation based on contacts and networking best practices
@@ -90,13 +88,13 @@ export function useDailyGoals() {
     return selectedGoals;
   };
 
-  const getTodaysGoals = async (contacts: any[]): Promise<Goal[]> => {
+  const getTodaysGoals = (contacts: any[]): Goal[] => {
     const today = new Date().toISOString().split('T')[0];
     const todaysGoals = dailyGoals.find(dg => dg.date === today);
 
     if (!todaysGoals) {
       // Generate new goals for today
-      const newGoals = await generateDailyGoals(contacts, []);
+      const newGoals = generateDailyGoals(contacts);
       const newDailyGoals = {
         date: today,
         goals: newGoals,
@@ -134,9 +132,8 @@ export function useDailyGoals() {
       createdDate: today
     };
 
-    getTodaysGoals([]).then(todaysGoals => {
-      updateTodaysGoals([...todaysGoals, newGoal]);
-    });
+    const todaysGoals = getTodaysGoals([]);
+    updateTodaysGoals([...todaysGoals, newGoal]);
   };
 
   return {

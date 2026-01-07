@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Circle, MessageSquare, Phone, Coffee, Star, Plus, CreditCard as Edit, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, MessageSquare, Phone, Coffee, Star, Plus, Edit, Trash2 } from 'lucide-react';
 import { Goal } from '../types';
 import { useDailyGoals } from '../hooks/useDailyGoals';
 import { useStreak } from '../hooks/useStreak';
@@ -14,25 +14,8 @@ const TodaysGoals: React.FC<TodaysGoalsProps> = ({ contacts }) => {
   const { addActivity } = useStreak();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | undefined>();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   
-  useEffect(() => {
-    const loadGoals = async () => {
-      setIsLoading(true);
-      try {
-        const todaysGoals = await getTodaysGoals(contacts);
-        setGoals(todaysGoals);
-      } catch (error) {
-        console.error('Error loading goals:', error);
-        setGoals([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadGoals();
-  }, [contacts]);
+  const goals = getTodaysGoals(contacts);
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -59,7 +42,6 @@ const TodaysGoals: React.FC<TodaysGoalsProps> = ({ contacts }) => {
       };
       
       const updatedGoals = goals.map(g => g.id === id ? updatedGoal : g);
-      setGoals(updatedGoals);
       updateTodaysGoals(updatedGoals);
       
       // Add to streak if completing a goal
@@ -82,34 +64,19 @@ const TodaysGoals: React.FC<TodaysGoalsProps> = ({ contacts }) => {
   const handleSaveGoal = (goal: Goal) => {
     if (selectedGoal) {
       const updatedGoals = goals.map(g => g.id === goal.id ? goal : g);
-      setGoals(updatedGoals);
       updateTodaysGoals(updatedGoals);
     } else {
-      const newGoals = [...goals, goal];
-      setGoals(newGoals);
-      updateTodaysGoals(newGoals);
+      updateTodaysGoals([...goals, goal]);
     }
   };
 
   const handleDeleteGoal = (goalId: string) => {
     const updatedGoals = goals.filter(g => g.id !== goalId);
-    setGoals(updatedGoals);
     updateTodaysGoals(updatedGoals);
   };
 
   const completedCount = goals.filter(goal => goal.completed).length;
   const progressPercentage = (completedCount / goals.length) * 100;
-
-  if (isLoading) {
-    return (
-      <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
-        <div className="flex items-center justify-center py-8">
-          <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <span className="ml-2 text-gray-600">Loading today's goals...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
