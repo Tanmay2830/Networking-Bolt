@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Award, Trophy, Star, Plus, Edit, Trash2, Crown, Target } from 'lucide-react';
+import { Award, Trophy, Star, Plus, CreditCard as Edit, Trash2, Crown, Target } from 'lucide-react';
 import { Achievement } from '../types';
 import AchievementModal from './AchievementModal';
 
