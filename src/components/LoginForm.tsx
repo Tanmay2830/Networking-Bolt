@@ -2,25 +2,21 @@ import React, { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff, UserPlus, LogIn } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
-interface LoginFormProps {
-  onSuccess?: () => void;
-}
-
-const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
+const LoginForm: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   
-  const { login, register, isLoading } = useAuth();
+  const { signIn, signUp, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!email || !password || (!isLogin && !name)) {
+    if (!email || !password || (!isLogin && !fullName)) {
       setError('Please fill in all fields');
       return;
     }
@@ -31,41 +27,27 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     }
 
     try {
-      let success = false;
+      let result;
       
       if (isLogin) {
-        success = await login(email, password);
-        if (!success) {
-          setError('Invalid email or password');
-        }
+        result = await signIn(email, password);
       } else {
-        success = await register(email, password, name);
-        if (!success) {
-          setError('User with this email already exists');
-        }
+        result = await signUp(email, password, fullName);
       }
 
-      if (success && onSuccess) {
-        onSuccess();
+      if (!result.success) {
+        setError(result.error || 'An error occurred');
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('An unexpected error occurred. Please try again.');
     }
   };
 
-  const demoLogin = async () => {
-    setEmail('demo@networkmaster.com');
-    setPassword('demo123');
-    
-    // Auto-login with demo account
-    const success = await login('demo@networkmaster.com', 'demo123');
-    if (!success) {
-      // Create demo account if it doesn't exist
-      await register('demo@networkmaster.com', 'demo123', 'Demo User');
-    }
-    
-    if (onSuccess) {
-      onSuccess();
+  const handleDemoLogin = async () => {
+    setError('');
+    const result = await signIn('admin@networkmaster.com', 'admin123');
+    if (!result.success) {
+      setError(result.error || 'Demo login failed');
     }
   };
 
@@ -118,8 +100,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter your full name"
                     required={!isLogin}
@@ -208,10 +190,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
             </div>
 
             <button
-              onClick={demoLogin}
+              onClick={handleDemoLogin}
               className="mt-4 w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              Try Demo Account
+              Try Admin Demo Account
             </button>
           </div>
 

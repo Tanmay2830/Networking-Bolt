@@ -4,8 +4,10 @@ import {
   Users, 
   Calendar, 
   TrendingUp, 
-  BookOpen 
+  BookOpen,
+  Shield
 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 interface NavigationProps {
   activeTab: string;
@@ -13,6 +15,8 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
+  const { isAdmin } = useAuth();
+  
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'contacts', label: 'Network', icon: Users },
@@ -21,6 +25,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
     { id: 'achievements', label: 'Achievements', icon: TrendingUp },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'resources', label: 'Resources', icon: BookOpen },
+    ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Shield }] : []),
   ];
 
   return (
@@ -34,7 +39,9 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
+                  ? tab.id === 'admin' 
+                    ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-lg shadow-yellow-500/25'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}
             >

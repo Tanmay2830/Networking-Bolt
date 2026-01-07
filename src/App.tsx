@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Contact, Event, Resource, Achievement, ExpertProfile } from './types';
+import { Resource } from './types';
 import { initialResources } from './data/initialData';
-import { useAuth } from './hooks/useAuth';
-import { useUserData } from './hooks/useUserData';
-import { useAI } from './hooks/useAI';
 import { AuthProvider } from './components/AuthProvider';
+import { useAuth } from './hooks/useAuth';
+import { useSupabaseData } from './hooks/useSupabaseData';
+import { useSupabaseStreak } from './hooks/useSupabaseStreak';
 import LoginForm from './components/LoginForm';
 import UserProfile from './components/UserProfile';
 import Dashboard from './components/Dashboard';
@@ -15,94 +15,97 @@ import Resources from './components/Resources';
 import ExpertFinder from './components/ExpertFinder';
 import ConversationTemplates from './components/ConversationTemplates';
 import Achievements from './components/Achievements';
+import AdminDashboard from './components/AdminDashboard';
 import Navigation from './components/Navigation';
-import { useStreak } from './hooks/useStreak';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showProfile, setShowProfile] = useState(false);
-  const { user, isAuthenticated } = useAuth();
-  const { addActivity, streakData } = useStreak();
-  const { isGenerating } = useAI();
+  const { user, profile, isAuthenticated, isAdmin } = useAuth();
+  const { addActivity, streakData } = useSupabaseStreak();
   
-  // User-specific data management
-  const { contacts, setContacts, events, setEvents, achievements, setAchievements } = useUserData();
+  // Supabase data management
+  const {
+    contacts,
+    events,
+    achievements,
+    goals,
+    loading,
+    addContact,
+    updateContact,
+    deleteContact,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+    addAchievement,
+    updateAchievement,
+    deleteAchievement
+  } = useSupabaseData();
+  
   const resources = initialResources; // Resources are global, not user-specific
   
   if (!isAuthenticated) {
     return <LoginForm />;
   }
   
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading NetworkMaster...</h2>
+          <p className="text-gray-600">Setting up your networking dashboard</p>
+        </div>
+      </div>
+    );
+  }
+  
   // Contact management
-  const handleAddContact = (contact: Contact) => {
-    setContacts([...contacts, contact]);
+  const handleAddContact = (contact: any) => {
+    addContact(contact);
     addActivity(`Added new contact: ${contact.name}`, 'contact');
   };
 
-  const handleUpdateContact = (updatedContact: Contact) => {
-    setContacts(contacts.map(c => c.id === updatedContact.id ? updatedContact : c));
+  const handleUpdateContact = (updatedContact: any) => {
+    updateContact(updatedContact);
     addActivity(`Updated contact: ${updatedContact.name}`, 'contact');
   };
 
   const handleDeleteContact = (contactId: string) => {
-    setContacts(contacts.filter(c => c.id !== contactId));
-    setEvents(events.filter(e => e.contactId !== contactId));
+    deleteContact(contactId);
   };
 
   // Event management
-  const handleAddEvent = (event: Event) => {
-    setEvents([...events, event]);
+  const handleAddEvent = (event: any) => {
+    addEvent(event);
     addActivity(`Scheduled: ${event.title}`, 'meeting');
   };
 
-  const handleUpdateEvent = (updatedEvent: Event) => {
-    setEvents(events.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+  const handleUpdateEvent = (updatedEvent: any) => {
+    updateEvent(updatedEvent);
   };
 
   const handleDeleteEvent = (eventId: string) => {
-    setEvents(events.filter(e => e.id !== eventId));
+    deleteEvent(eventId);
   };
 
   // Achievement management
-  const handleAddAchievement = (achievement: Achievement) => {
-    setAchievements([...achievements, achievement]);
+  const handleAddAchievement = (achievement: any) => {
+    addAchievement(achievement);
   };
 
-  const handleUpdateAchievement = (updatedAchievement: Achievement) => {
-    setAchievements(achievements.map(a => a.id === updatedAchievement.id ? updatedAchievement : a));
+  const handleUpdateAchievement = (updatedAchievement: any) => {
+    updateAchievement(updatedAchievement);
   };
 
   const handleDeleteAchievement = (achievementId: string) => {
-    setAchievements(achievements.filter(a => a.id !== achievementId));
-  };
-
-  // Expert finder
-  const handleAddExpertToNetwork = (expert: ExpertProfile) => {
-    const newContact: Contact = {
-      id: `expert-${Date.now()}`,
-      name: expert.name,
-      role: expert.role,
-      company: expert.company,
-      location: expert.location,
-      email: '', // Would be filled in real implementation
-      priority: expert.connectionDifficulty === 'easy' ? 70 : expert.connectionDifficulty === 'medium' ? 85 : 95,
-      lastContact: 'Never',
-      tags: ['Expert', 'Cold Outreach'],
-      status: 'needs_followup' as const,
-      avatar: expert.avatar,
-      notes: `Found through expert finder. ${expert.recentActivity || ''}`,
-      addedDate: new Date().toISOString().split('T')[0],
-      industry: expert.industry,
-      expertise: expert.skills
-    };
-    
-    handleAddContact(newContact);
-    addActivity(`Added expert to network: ${expert.name}`, 'contact');
-    alert(`${expert.name} has been added to your network!`);
+    deleteAchievement(achievementId);
   };
 
   // Message handling
-  const handleSendMessage = (contact: Contact) => {
+  const handleSendMessage = (contact: any) => {
     if (contact.email) {
       window.open(`mailto:${contact.email}?subject=Following up on our connection`);
     } else if (contact.linkedinUrl) {
@@ -165,6 +168,10 @@ function AppContent() {
         );
       case 'resources':
         return <Resources resources={resources} />;
+      case 'admin':
+        return isAdmin ? <AdminDashboard /> : (
+          <div className="text-center py-12 text-red-600">Access denied. Admin privileges required.</div>
+        );
       default:
         return (
           <Dashboard 
@@ -193,28 +200,22 @@ function AppContent() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {isGenerating && (
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-purple-700">AI Working...</span>
-                </div>
-              )}
               <div className="flex items-center space-x-1 bg-green-50 px-3 py-1 rounded-full">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-sm font-medium text-green-700">{streakData.currentStreak} day streak!</span>
               </div>
+              <button
+                onClick={() => setShowProfile(true)}
+                className="flex items-center space-x-2 px-3 py-1 bg-white/60 backdrop-blur-sm rounded-full border border-gray-200/50 hover:bg-white/80 transition-colors"
+              >
+                <div className="w-6 h-6 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                  {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <span className="text-sm font-medium text-gray-700">{profile?.full_name || 'User'}</span>
+              </button>
             </div>
           </div>
         </header>
-            <button
-              onClick={() => setShowProfile(true)}
-              className="flex items-center space-x-2 px-3 py-1 bg-white/60 backdrop-blur-sm rounded-full border border-gray-200/50 hover:bg-white/80 transition-colors"
-            >
-              <div className="w-6 h-6 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                {user?.avatar || user?.name.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-sm font-medium text-gray-700">{user?.name}</span>
-            </button>
 
         <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
         
