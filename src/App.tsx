@@ -12,7 +12,6 @@ import Contacts from './components/Contacts';
 import Calendar from './components/Calendar';
 import Analytics from './components/Analytics';
 import Resources from './components/Resources';
-import ExpertFinder from './components/ExpertFinder';
 import ConversationTemplates from './components/ConversationTemplates';
 import Achievements from './components/Achievements';
 import AdminDashboard from './components/AdminDashboard';

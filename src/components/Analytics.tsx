@@ -105,17 +105,12 @@ const Analytics: React.FC<AnalyticsProps> = ({
         return acc;
       }, {}),
       contactsByPriority: contacts.reduce((acc: Record<string, number>, contact) => {
-        const priority = contact.priority >= 80 ? 'High (80-100)' : 
-                        contact.priority >= 50 ? 'Medium (50-79)' : 
+        const priority = contact.priority >= 80 ? 'High (80-100)' :
+                        contact.priority >= 50 ? 'Medium (50-79)' :
                         'Low (1-49)';
         acc[priority] = (acc[priority] || 0) + 1;
         return acc;
-      }, {}),
-      contactsByPriority: contacts.reduce((acc, contact) => {
-        const priority = contact.priority >= 8 ? 'High' : contact.priority >= 6 ? 'Medium' : 'Low';
-        acc[priority] = (acc[priority] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>)
+      }, {})
     };
     
     const jsonContent = JSON.stringify(analyticsData, null, 2);
