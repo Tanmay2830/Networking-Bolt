@@ -1,19 +1,33 @@
 import React from 'react';
-import { X, ExternalLink, Clock, BookOpen } from 'lucide-react';
+import { X, ExternalLink, Clock, BookOpen, CheckCircle, Star } from 'lucide-react';
 import { Resource } from '../types';
 
 interface ResourceModalProps {
   isOpen: boolean;
   onClose: () => void;
   resource: Resource | null;
+  onComplete?: () => void;
 }
 
 const ResourceModal: React.FC<ResourceModalProps> = ({
   isOpen,
   onClose,
-  resource
+  resource,
+  onComplete
 }) => {
+  const [rating, setRating] = React.useState(0);
+  const [timeSpent, setTimeSpent] = React.useState(0);
+  const [showCompletionForm, setShowCompletionForm] = React.useState(false);
+
   if (!isOpen || !resource) return null;
+
+  const handleComplete = () => {
+    if (onComplete) {
+      onComplete();
+      setShowCompletionForm(false);
+      onClose();
+    }
+  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -85,13 +99,82 @@ const ResourceModal: React.FC<ResourceModalProps> = ({
             <div className="text-sm text-gray-600">
               Category: {resource.category}
             </div>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Close
-            </button>
+            <div className="flex space-x-3">
+              {onComplete && !showCompletionForm && (
+                <button
+                  onClick={() => setShowCompletionForm(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Mark Complete</span>
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
+          
+          {showCompletionForm && (
+            <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+              <h4 className="font-medium text-gray-900 mb-3">Complete this resource</h4>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    How would you rate this resource?
+                  </label>
+                  <div className="flex items-center space-x-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => setRating(star)}
+                        className="p-1"
+                      >
+                        <Star 
+                          className={`w-6 h-6 ${
+                            star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                          } hover:text-yellow-400 transition-colors`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Time spent (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={timeSpent}
+                    onChange={(e) => setTimeSpent(parseInt(e.target.value) || 0)}
+                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="15"
+                  />
+                </div>
+                
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleComplete}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Complete Resource
+                  </button>
+                  <button
+                    onClick={() => setShowCompletionForm(false)}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

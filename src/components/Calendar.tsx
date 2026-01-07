@@ -161,6 +161,7 @@ const Calendar: React.FC<CalendarProps> = ({
         {/* Upcoming Events */}
         <div className="space-y-6">
           <GoogleCalendarIntegration />
+          <GoogleCalendarIntegration events={events} contacts={contacts} />
           
           <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Upcoming Events</h3>

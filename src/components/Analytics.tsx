@@ -1,8 +1,10 @@
 import React from 'react';
-import { TrendingUp, Award, Target, Users, MessageCircle, Calendar, Download, Plus, Edit } from 'lucide-react';
+import { TrendingUp, Award, Target, Users, MessageCircle, Calendar, Download, Plus, Edit, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Contact, Event, Achievement } from '../types';
 import { useStreak } from '../hooks/useStreak';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useAnalytics } from '../hooks/useAnalytics';
+import { Goal } from '../types';
 import AchievementModal from './AchievementModal';
 
 interface AnalyticsProps {
@@ -11,22 +13,13 @@ interface AnalyticsProps {
 }
 
 const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
-  const { streakData } = useStreak();
   const [achievements, setAchievements] = useLocalStorage<Achievement[]>('networkmaster-achievements', []);
+  const [goals] = useLocalStorage<Goal[]>('networkmaster-daily-goals', []);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [selectedAchievement, setSelectedAchievement] = React.useState<Achievement | undefined>();
   
-  const totalContacts = contacts.length;
-  const monthlyConnections = contacts.filter(c => {
-    const addedDate = new Date(c.addedDate);
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    return addedDate.getMonth() === currentMonth && addedDate.getFullYear() === currentYear;
-  }).length;
-  
-  const responseRate = 78; // This would be calculated based on actual interaction data
-  const meetingsScheduled = events.filter(e => e.date >= new Date()).length;
-  const earnedAchievements = achievements.filter(a => a.earned).length;
+  // Use real analytics hook
+  const analytics = useAnalytics(contacts, events, goals, achievements);
   
   // Update achievements based on current stats
   React.useEffect(() => {
@@ -37,14 +30,14 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
       switch (achievement.category) {
         case 'milestone':
           if (achievement.title.includes('First Connection')) {
-            progress = totalContacts > 0 ? 1 : 0;
-            earned = totalContacts > 0;
+            progress = analytics.totalContacts > 0 ? 1 : 0;
+            earned = analytics.totalContacts > 0;
           }
           break;
         case 'streak':
           if (achievement.title.includes('Week Warrior')) {
-            progress = streakData.currentStreak;
-            earned = streakData.currentStreak >= 7;
+            progress = analytics.currentStreak;
+            earned = analytics.currentStreak >= 7;
           }
           break;
         case 'meetings':
@@ -54,8 +47,8 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
           }
           break;
         case 'connections':
-          progress = totalContacts;
-          earned = totalContacts >= (achievement.requirement || 50);
+          progress = analytics.totalContacts;
+          earned = analytics.totalContacts >= (achievement.requirement || 50);
           break;
       }
       
@@ -79,9 +72,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
     if (hasChanges) {
       setAchievements(updatedAchievements);
     }
-  }, [totalContacts, streakData.currentStreak, events.length]);
-
-  const monthlyGoal = 40;
+  }, [analytics.totalContacts, analytics.currentStreak, events.length]);
 
   const monthlyStats = [
     { month: 'Oct', connections: 12, messages: 28, meetings: 6 },
@@ -92,18 +83,19 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
 
   const exportAnalytics = () => {
     const analyticsData = {
-      totalContacts,
-      monthlyConnections,
-      responseRate,
-      meetingsScheduled,
-      currentStreak: streakData.currentStreak,
-      longestStreak: streakData.longestStreak,
-      earnedAchievements,
-      totalAchievements: achievements.length,
-      contactsByCompany: contacts.reduce((acc, contact) => {
+      ...analytics,
+      exportDate: new Date().toISOString(),
+      contactsByCompany: contacts.reduce((acc: Record<string, number>, contact) => {
         acc[contact.company] = (acc[contact.company] || 0) + 1;
         return acc;
-      }, {} as Record<string, number>),
+      }, {}),
+      contactsByPriority: contacts.reduce((acc: Record<string, number>, contact) => {
+        const priority = contact.priority >= 80 ? 'High (80-100)' : 
+                        contact.priority >= 50 ? 'Medium (50-79)' : 
+                        'Low (1-49)';
+        acc[priority] = (acc[priority] || 0) + 1;
+        return acc;
+      }, {}),
       contactsByPriority: contacts.reduce((acc, contact) => {
         const priority = contact.priority >= 8 ? 'High' : contact.priority >= 6 ? 'Medium' : 'Low';
         acc[priority] = (acc[priority] || 0) + 1;
@@ -194,7 +186,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
         <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{totalContacts}</p>
+              <p className="text-2xl font-bold text-gray-900">{analytics.totalContacts}</p>
               <p className="text-sm text-gray-600">Total Network</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -203,14 +195,19 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
           </div>
           <div className="mt-4 flex items-center text-sm">
             <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-            <span className="text-green-600">+{monthlyConnections} this month</span>
+            <span className={`${analytics.monthlyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {analytics.monthlyGrowth >= 0 ? '+' : ''}{analytics.monthlyGrowth}% growth
+            </span>
+            <span className="text-gray-500 ml-2">
+              ({analytics.monthlyConnections} this month)
+            </span>
           </div>
         </div>
 
         <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{responseRate}%</p>
+              <p className="text-2xl font-bold text-gray-900">{analytics.responseRate}%</p>
               <p className="text-sm text-gray-600">Response Rate</p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -218,14 +215,16 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm">
-            <span className="text-green-600">Above industry avg</span>
+            <span className={`${analytics.responseRate >= 70 ? 'text-green-600' : 'text-orange-600'}`}>
+              {analytics.responseRate >= 70 ? 'Above average' : 'Room for improvement'}
+            </span>
           </div>
         </div>
 
         <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{meetingsScheduled}</p>
+              <p className="text-2xl font-bold text-gray-900">{analytics.meetingsScheduled}</p>
               <p className="text-sm text-gray-600">Meetings Scheduled</p>
             </div>
             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -233,20 +232,15 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm">
-            <span className="text-orange-600">{events.filter(e => {
-              const eventDate = new Date(e.date);
-              const today = new Date();
-              const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-              return eventDate >= today && eventDate <= weekFromNow;
-            }).length} this week</span>
+            <span className="text-orange-600">{analytics.upcomingMeetings} upcoming</span>
           </div>
         </div>
 
         <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{monthlyConnections}/{monthlyGoal}</p>
-              <p className="text-sm text-gray-600">Monthly Goal</p>
+              <p className="text-2xl font-bold text-gray-900">{analytics.completedGoals}/{analytics.totalGoals}</p>
+              <p className="text-sm text-gray-600">Goals Completed</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <Target className="w-6 h-6 text-purple-600" />
@@ -256,8 +250,102 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
                 className="bg-purple-600 h-2 rounded-full transition-all duration-500" 
-                style={{ width: `${Math.min((monthlyConnections / monthlyGoal) * 100, 100)}%` }}
+                style={{ width: `${analytics.goalCompletionRate}%` }}
               ></div>
+            </div>
+            <div className="mt-1 text-xs text-gray-500">
+              {Math.round(analytics.goalCompletionRate)}% completion rate
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Key Insights */}
+      <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Key Insights</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <Users className="w-5 h-5 text-blue-600" />
+              <span className="font-medium text-blue-900">Network Quality</span>
+            </div>
+            <p className="text-2xl font-bold text-blue-900">{Math.round(analytics.averagePriority)}/100</p>
+            <p className="text-sm text-blue-700">Average priority score</p>
+          </div>
+          
+          <div className="bg-green-50 p-4 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="font-medium text-green-900">Active Connections</span>
+            </div>
+            <p className="text-2xl font-bold text-green-900">{analytics.contactsByStatus.active || 0}</p>
+            <p className="text-sm text-green-700">Engaged contacts</p>
+          </div>
+          
+          <div className="bg-orange-50 p-4 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <AlertTriangle className="w-5 h-5 text-orange-600" />
+              <span className="font-medium text-orange-900">Follow-ups Needed</span>
+            </div>
+            <p className="text-2xl font-bold text-orange-900">{analytics.overdueFollowups}</p>
+            <p className="text-sm text-orange-700">Overdue contacts</p>
+          </div>
+          
+          <div className="bg-purple-50 p-4 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <Award className="w-5 h-5 text-purple-600" />
+              <span className="font-medium text-purple-900">Achievement Rate</span>
+            </div>
+            <p className="text-2xl font-bold text-purple-900">{Math.round((analytics.achievements / analytics.totalAchievements) * 100)}%</p>
+            <p className="text-sm text-purple-700">{analytics.achievements}/{analytics.totalAchievements} unlocked</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Industry Breakdown */}
+      <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Network Distribution</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3">By Industry</h4>
+            <div className="space-y-2">
+              {Object.entries(analytics.contactsByIndustry).map(([industry, count]) => (
+                <div key={industry} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">{industry}</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-500 h-2 rounded-full" 
+                        style={{ width: `${(count / analytics.totalContacts) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 w-8">{count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3">By Status</h4>
+            <div className="space-y-2">
+              {Object.entries(analytics.contactsByStatus).map(([status, count]) => (
+                <div key={status} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 capitalize">{status.replace('_', ' ')}</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${
+                          status === 'active' ? 'bg-green-500' : 
+                          status === 'needs_followup' ? 'bg-orange-500' : 'bg-gray-500'
+                        }`}
+                        style={{ width: `${(count / analytics.totalContacts) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 w-8">{count}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -330,7 +418,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
             </button>
             <Award className="w-5 h-5 text-yellow-500" />
             <span className="text-sm font-medium text-gray-600">
-              {earnedAchievements}/{achievements.length} unlocked
+              {analytics.achievements}/{analytics.totalAchievements} unlocked
             </span>
           </div>
         </div>
@@ -419,24 +507,24 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Networking Streak Analytics</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-orange-600">{streakData.currentStreak}</div>
+            <div className="text-3xl font-bold text-orange-600">{analytics.currentStreak}</div>
             <div className="text-sm text-gray-600">Current Streak</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">{streakData.longestStreak}</div>
+            <div className="text-3xl font-bold text-purple-600">{analytics.longestStreak}</div>
             <div className="text-sm text-gray-600">Best Streak</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">{streakData.streakHistory.length}</div>
+            <div className="text-3xl font-bold text-green-600">{analytics.streakHistory.length}</div>
             <div className="text-sm text-gray-600">Total Active Days</div>
           </div>
         </div>
         
-        {streakData.streakHistory.length > 0 && (
+        {analytics.streakHistory.length > 0 && (
           <div className="mt-6">
             <h4 className="font-medium text-gray-900 mb-3">Recent Activity</h4>
             <div className="space-y-2 max-h-40 overflow-y-auto">
-              {streakData.streakHistory.slice(-10).reverse().map((activity, index) => (
+              {analytics.streakHistory.slice(-10).reverse().map((activity, index) => (
                 <div key={index} className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
                   <div className={`w-3 h-3 rounded-full ${
                     activity.type === 'contact' ? 'bg-blue-500' :
@@ -491,6 +579,10 @@ const Analytics: React.FC<AnalyticsProps> = ({ contacts, events }) => {
               <span>Export Calendar (CSV)</span>
             </div>
           </button>
+        </div>
+        <div className="mt-4 text-sm text-gray-500">
+          <p>Last export: {analytics.lastActivityDate || 'Never'}</p>
+          <p>Total data points: {analytics.totalContacts + analytics.totalGoals + events.length}</p>
         </div>
       </div>
 

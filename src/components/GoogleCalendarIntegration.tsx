@@ -1,58 +1,84 @@
 import React, { useState } from 'react';
-import { Calendar, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, ExternalLink, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { Event, Contact } from '../types';
 
-const GoogleCalendarIntegration: React.FC = () => {
+interface GoogleCalendarIntegrationProps {
+  events?: Event[];
+  contacts?: Contact[];
+}
+
+const GoogleCalendarIntegration: React.FC<GoogleCalendarIntegrationProps> = ({ events = [], contacts = [] }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
 
   const handleGoogleCalendarConnect = () => {
     setIsConnecting(true);
     
-    // Simulate Google Calendar OAuth flow
-    // In a real implementation, this would redirect to Google OAuth
+    // Simulate real Google Calendar OAuth flow
     setTimeout(() => {
       setIsConnected(true);
       setIsConnecting(false);
+      setLastSync(new Date());
       
-      // Show success message
-      alert('Google Calendar connected successfully! Your networking events will now sync automatically.');
+      // Simulate syncing events
+      syncEventsToGoogleCalendar();
     }, 2000);
+  };
+
+  const syncEventsToGoogleCalendar = () => {
+    // In a real implementation, this would use Google Calendar API
+    console.log('Syncing events to Google Calendar:', events);
+    setLastSync(new Date());
   };
 
   const handleDisconnect = () => {
     if (window.confirm('Are you sure you want to disconnect Google Calendar?')) {
       setIsConnected(false);
+      setLastSync(null);
     }
   };
 
   const exportToGoogleCalendar = () => {
-    // Create a sample .ics file for Google Calendar import
-    const events = [
-      {
-        title: 'Coffee Chat with Sarah Chen',
-        start: '2025-01-16T14:00:00',
-        end: '2025-01-16T15:00:00',
-        description: 'Networking meeting to discuss ML opportunities at Google'
-      },
-      {
-        title: 'LinkedIn call with Raj Patel',
-        start: '2025-01-17T10:00:00',
-        end: '2025-01-17T10:30:00',
-        description: 'Follow up on Azure internship opportunities'
-      }
-    ];
+    if (events.length === 0) {
+      alert('No events to export. Add some networking events first!');
+      return;
+    }
+
+    // Create real .ics file from actual events
+    const icsEvents = events.map(event => {
+      const contact = contacts.find(c => c.id === event.contactId);
+      const startDate = new Date(event.date);
+      const [hours, minutes] = event.time.split(':');
+      startDate.setHours(parseInt(hours), parseInt(minutes));
+      
+      const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+      
+      return {
+        title: event.title,
+        start: startDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z',
+        end: endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z',
+        description: `${event.description || ''}\n\nContact: ${contact?.name || 'Unknown'}\nLocation: ${event.location}\nPriority: ${event.priority}`,
+        location: event.location,
+        uid: `networkmaster-${event.id}@networkmaster.app`
+      };
+    });
 
     const icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//NetworkMaster//NetworkMaster//EN',
-      ...events.flatMap(event => [
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      ...icsEvents.flatMap(event => [
         'BEGIN:VEVENT',
-        `DTSTART:${event.start.replace(/[-:]/g, '').replace('T', 'T')}Z`,
-        `DTEND:${event.end.replace(/[-:]/g, '').replace('T', 'T')}Z`,
+        `DTSTART:${event.start}`,
+        `DTEND:${event.end}`,
         `SUMMARY:${event.title}`,
         `DESCRIPTION:${event.description}`,
-        `UID:${Date.now()}-${Math.random()}@networkmaster.com`,
+        `LOCATION:${event.location}`,
+        `UID:${event.uid}`,
+        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
         'END:VEVENT'
       ]),
       'END:VCALENDAR'
@@ -65,6 +91,8 @@ const GoogleCalendarIntegration: React.FC = () => {
     a.download = 'networking-events.ics';
     a.click();
     URL.revokeObjectURL(url);
+    
+    alert(`Exported ${events.length} networking events to Google Calendar format!`);
   };
 
   return (
@@ -110,7 +138,7 @@ const GoogleCalendarIntegration: React.FC = () => {
           <button
             onClick={handleGoogleCalendarConnect}
             disabled={isConnecting}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isConnecting ? (
               <>
@@ -129,7 +157,7 @@ const GoogleCalendarIntegration: React.FC = () => {
         <div className="space-y-4">
           <div className="bg-green-50 p-4 rounded-lg">
             <p className="text-sm text-green-800">
-              ✅ Your Google Calendar is connected! Events will sync automatically.
+              ✅ Your Google Calendar is connected! {events.length} events ready to sync.
             </p>
           </div>
 
@@ -138,7 +166,7 @@ const GoogleCalendarIntegration: React.FC = () => {
               onClick={exportToGoogleCalendar}
               className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
-              <Calendar className="w-4 h-4" />
+              <Download className="w-4 h-4" />
               <span>Export Events (.ics)</span>
             </button>
             
@@ -151,8 +179,8 @@ const GoogleCalendarIntegration: React.FC = () => {
           </div>
 
           <div className="text-xs text-gray-500">
-            <p>Last sync: Just now</p>
-            <p>Next sync: In 15 minutes</p>
+            <p>Last sync: {lastSync ? lastSync.toLocaleString() : 'Never'}</p>
+            <p>Events to sync: {events.filter(e => !e.completed).length}</p>
           </div>
         </div>
       )}

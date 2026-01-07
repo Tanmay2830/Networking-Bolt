@@ -79,6 +79,14 @@ export interface NetworkingStats {
   streakHistory: { date: string; activity: string }[];
   weeklyGoals: number;
   monthlyGoals: number;
+  averagePriority: number;
+  contactsByIndustry: Record<string, number>;
+  contactsByStatus: Record<string, number>;
+  monthlyGrowth: number;
+  completedGoals: number;
+  totalGoals: number;
+  upcomingMeetings: number;
+  overdueFollowups: number;
 }
 
 export interface StreakData {
@@ -92,4 +100,12 @@ export interface DailyGoals {
   date: string;
   goals: Goal[];
   generated: boolean;
+}
+
+export interface ResourceProgress {
+  resourceId: string;
+  completed: boolean;
+  completedDate?: string;
+  timeSpent?: number;
+  rating?: number;
 }

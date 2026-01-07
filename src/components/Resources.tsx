@@ -1,6 +1,8 @@
 import React from 'react';
-import { BookOpen, ExternalLink, Play, FileText, Lightbulb, Globe, Download } from 'lucide-react';
+import { BookOpen, ExternalLink, Play, FileText, Lightbulb, Globe, Download, CheckCircle, Star, Clock, Plus } from 'lucide-react';
 import { Resource } from '../types';
+import { useResourceProgress } from '../hooks/useResourceProgress';
+import { useAI } from '../hooks/useAI';
 import ResourceModal from './ResourceModal';
 
 interface ResourcesProps {
@@ -10,6 +12,14 @@ interface ResourcesProps {
 const Resources: React.FC<ResourcesProps> = ({ resources }) => {
   const [selectedResource, setSelectedResource] = React.useState<Resource | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [aiRecommendations, setAiRecommendations] = React.useState<Resource[]>([]);
+  const [userLevel, setUserLevel] = React.useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+  
+  const { progress, markResourceCompleted, getResourceProgress, getCompletedResources, getCompletionStats } = useResourceProgress();
+  const { recommendNextResources, isGenerating } = useAI();
+  
+  const completionStats = getCompletionStats();
+  const completedResourceIds = getCompletedResources();
 
   const groupedResources = resources.reduce((acc, resource) => {
     if (!acc[resource.category]) {
@@ -20,6 +30,16 @@ const Resources: React.FC<ResourcesProps> = ({ resources }) => {
   }, {} as Record<string, Resource[]>);
 
   const featuredResources = resources.filter(r => r.featured);
+
+  // Generate AI recommendations when component mounts or when resources are completed
+  React.useEffect(() => {
+    const generateRecommendations = async () => {
+      const recommendations = await recommendNextResources(completedResourceIds, userLevel);
+      setAiRecommendations(recommendations);
+    };
+    
+    generateRecommendations();
+  }, [completedResourceIds.length, userLevel]);
 
   const quickTips = [
     { tip: 'Follow up within 24 hours after meeting someone new', category: 'Follow-up' },
@@ -51,6 +71,21 @@ const Resources: React.FC<ResourcesProps> = ({ resources }) => {
     }
   };
 
+  const handleResourceComplete = (resource: Resource, timeSpent?: number, rating?: number) => {
+    markResourceCompleted(resource.id, timeSpent, rating);
+    
+    // Show completion celebration
+    alert(`🎉 Congratulations! You've completed "${resource.title}". Keep up the great work!`);
+    
+    // Update user level based on completion count
+    const newCompletedCount = completedResourceIds.length + 1;
+    if (newCompletedCount >= 10) {
+      setUserLevel('advanced');
+    } else if (newCompletedCount >= 5) {
+      setUserLevel('intermediate');
+    }
+  };
+
   const getIcon = (type: string) => {
     switch (type) {
       case 'article': return BookOpen;
@@ -65,17 +100,23 @@ const Resources: React.FC<ResourcesProps> = ({ resources }) => {
   };
 
   const exportResources = () => {
-    const resourceData = resources.map(r => ({
+    const resourceData = [...resources, ...aiRecommendations].map(r => {
+      const resourceProgress = getResourceProgress(r.id);
+      return {
       title: r.title,
       type: r.type,
       category: r.category,
       readTime: r.readTime,
-      url: r.url || 'Built-in content'
-    }));
+      url: r.url || 'Built-in content',
+      completed: resourceProgress?.completed || false,
+      completedDate: resourceProgress?.completedDate || '',
+      rating: resourceProgress?.rating || ''
+      };
+    });
     
     const csvContent = [
-      ['Title', 'Type', 'Category', 'Read Time', 'URL'],
-      ...resourceData.map(r => [r.title, r.type, r.category, r.readTime, r.url])
+      ['Title', 'Type', 'Category', 'Read Time', 'URL', 'Completed', 'Completed Date', 'Rating'],
+      ...resourceData.map(r => [r.title, r.type, r.category, r.readTime, r.url, r.completed, r.completedDate, r.rating])
     ].map(row => row.join(',')).join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -93,6 +134,125 @@ const Resources: React.FC<ResourcesProps> = ({ resources }) => {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Networking Resources</h2>
         <p className="text-gray-600">Expert guides, tips, and strategies to accelerate your career growth</p>
       </div>
+
+      {/* Progress Overview */}
+      <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Your Learning Progress</h3>
+          <div className="flex items-center space-x-2">
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              userLevel === 'beginner' ? 'bg-green-100 text-green-700' :
+              userLevel === 'intermediate' ? 'bg-blue-100 text-blue-700' :
+              'bg-purple-100 text-purple-700'
+            }`}>
+              {userLevel.charAt(0).toUpperCase() + userLevel.slice(1)}
+            </span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{completionStats.completed}</div>
+            <div className="text-sm text-gray-600">Completed</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">{Math.round(completionStats.completionRate)}%</div>
+            <div className="text-sm text-gray-600">Completion Rate</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-600">{completionStats.averageRating || 'N/A'}</div>
+            <div className="text-sm text-gray-600">Avg Rating</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600">{aiRecommendations.length}</div>
+            <div className="text-sm text-gray-600">AI Recommendations</div>
+          </div>
+        </div>
+        
+        <div className="mt-4">
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${completionStats.completionRate}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Recommendations */}
+      {aiRecommendations.length > 0 && (
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Lightbulb className="w-6 h-6 text-purple-600" />
+              <h3 className="text-lg font-semibold text-purple-900">AI-Powered Recommendations</h3>
+            </div>
+            {isGenerating && (
+              <div className="flex items-center space-x-2 text-purple-600">
+                <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm">Generating...</span>
+              </div>
+            )}
+          </div>
+          
+          <p className="text-purple-700 mb-4">
+            Based on your progress and {userLevel} level, here are personalized recommendations:
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {aiRecommendations.map((resource) => {
+              const Icon = getIcon(resource.type);
+              const resourceProgress = getResourceProgress(resource.id);
+              const isCompleted = resourceProgress?.completed || false;
+              
+              return (
+                <div 
+                  key={resource.id}
+                  className="group p-4 bg-white border border-purple-200 rounded-lg hover:shadow-md hover:border-purple-300 transition-all duration-200 cursor-pointer relative"
+                  onClick={() => handleResourceClick(resource)}
+                >
+                  {isCompleted && (
+                    <div className="absolute top-2 right-2">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start justify-between mb-3">
+                    <Icon className="w-5 h-5 text-purple-600 mt-1" />
+                    <div className="flex items-center space-x-1">
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      <span className="text-xs text-purple-600 font-medium">AI Pick</span>
+                    </div>
+                  </div>
+                  
+                  <h4 className="font-medium text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                    {resource.title}
+                  </h4>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(resource.type)}`}>
+                      {resource.type}
+                    </span>
+                    <span className="text-xs text-gray-500">{resource.readTime}</span>
+                  </div>
+                  
+                  {!isCompleted && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleResourceComplete(resource);
+                      }}
+                      className="mt-3 w-full px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      Mark Complete
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Quick Tips */}
       <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
@@ -118,12 +278,21 @@ const Resources: React.FC<ResourcesProps> = ({ resources }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {categoryResources.map((resource) => {
                 const Icon = getIcon(resource.type);
+                const resourceProgress = getResourceProgress(resource.id);
+                const isCompleted = resourceProgress?.completed || false;
+                
                 return (
                   <div 
                     key={resource.id}
-                    className="group p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer"
+                    className="group p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer relative"
                     onClick={() => handleResourceClick(resource)}
                   >
+                    {isCompleted && (
+                      <div className="absolute top-2 right-2">
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                      </div>
+                    )}
+                    
                     <div className="flex items-start justify-between mb-3">
                       <Icon className="w-5 h-5 text-blue-600 mt-1" />
                       <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
@@ -139,6 +308,30 @@ const Resources: React.FC<ResourcesProps> = ({ resources }) => {
                       </span>
                       <span className="text-xs text-gray-500">{resource.readTime}</span>
                     </div>
+                    
+                    {!isCompleted && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleResourceComplete(resource);
+                        }}
+                        className="mt-3 w-full px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Mark Complete
+                      </button>
+                    )}
+                    
+                    {isCompleted && resourceProgress?.rating && (
+                      <div className="mt-3 flex items-center space-x-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-3 h-3 ${i < resourceProgress.rating! ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                          />
+                        ))}
+                        <span className="text-xs text-gray-500 ml-1">({resourceProgress.rating}/5)</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -192,7 +385,9 @@ const Resources: React.FC<ResourcesProps> = ({ resources }) => {
           </button>
         </div>
         <p className="text-sm text-gray-500">
-          Total resources: {resources.length} | Categories: {Object.keys(groupedResources).length}
+          Total resources: {resources.length + aiRecommendations.length} | 
+          Completed: {completionStats.completed} | 
+          Categories: {Object.keys(groupedResources).length}
         </p>
       </div>
 
@@ -216,6 +411,7 @@ const Resources: React.FC<ResourcesProps> = ({ resources }) => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         resource={selectedResource}
+        onComplete={selectedResource ? () => handleResourceComplete(selectedResource) : undefined}
       />
     </div>
   );
