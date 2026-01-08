@@ -143,6 +143,7 @@ export function useSupabaseData() {
   // Fetch all user data
   useEffect(() => {
     if (isAuthenticated && user && supabase) {
+      setLoading(true);
       fetchAllData();
     } else {
       setContacts([]);

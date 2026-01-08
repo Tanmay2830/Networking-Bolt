@@ -67,8 +67,11 @@ export function useAuthProvider(): AuthContextType {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
-    if (!supabase) return;
+  const fetchProfile = async (userId: string, retryCount = 0) => {
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase
@@ -79,9 +82,17 @@ export function useAuthProvider(): AuthContextType {
 
       if (error) {
         console.error('Error fetching profile:', error);
-      } else {
-        setProfile(data);
+        setIsLoading(false);
+        return;
       }
+
+      if (!data && retryCount < 3) {
+        // Profile might not be created yet, retry after a short delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return fetchProfile(userId, retryCount + 1);
+      }
+
+      setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
@@ -93,7 +104,7 @@ export function useAuthProvider(): AuthContextType {
     if (!supabase) {
       return { success: false, error: 'Supabase not configured. Please connect your Supabase project.' };
     }
-    
+
     try {
       setIsLoading(true);
       const { data, error } = await supabase.auth.signUp({
@@ -110,6 +121,11 @@ export function useAuthProvider(): AuthContextType {
         return { success: false, error: error.message };
       }
 
+      // Wait for profile to be created
+      if (data.user) {
+        await fetchProfile(data.user.id);
+      }
+
       return { success: true };
     } catch (error) {
       return { success: false, error: 'An unexpected error occurred' };
@@ -122,7 +138,7 @@ export function useAuthProvider(): AuthContextType {
     if (!supabase) {
       return { success: false, error: 'Supabase not configured. Please connect your Supabase project.' };
     }
-    
+
     try {
       setIsLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -132,6 +148,11 @@ export function useAuthProvider(): AuthContextType {
 
       if (error) {
         return { success: false, error: error.message };
+      }
+
+      // Ensure profile is fetched
+      if (data.user) {
+        await fetchProfile(data.user.id);
       }
 
       return { success: true };
@@ -144,9 +165,11 @@ export function useAuthProvider(): AuthContextType {
 
   const signOut = async () => {
     if (!supabase) return;
-    
+
     try {
       setIsLoading(true);
+      setUser(null);
+      setProfile(null);
       await supabase.auth.signOut();
     } catch (error) {
       console.error('Error signing out:', error);

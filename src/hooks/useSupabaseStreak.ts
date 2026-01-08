@@ -15,6 +15,7 @@ export function useSupabaseStreak() {
 
   useEffect(() => {
     if (isAuthenticated && user && supabase) {
+      setLoading(true);
       fetchStreakData();
     } else {
       setStreakData({
