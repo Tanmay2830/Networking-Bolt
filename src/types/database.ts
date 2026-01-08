@@ -323,6 +323,38 @@ export interface Database {
           updated_at?: string
         }
       }
+      activities: {
+        Row: {
+          id: string
+          user_id: string
+          activity_type: 'message' | 'meeting' | 'connection' | 'followup' | 'note' | 'call' | 'email'
+          activity_date: string
+          contact_id: string | null
+          event_id: string | null
+          description: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          activity_type?: 'message' | 'meeting' | 'connection' | 'followup' | 'note' | 'call' | 'email'
+          activity_date?: string
+          contact_id?: string | null
+          event_id?: string | null
+          description?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          activity_type?: 'message' | 'meeting' | 'connection' | 'followup' | 'note' | 'call' | 'email'
+          activity_date?: string
+          contact_id?: string | null
+          event_id?: string | null
+          description?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -336,6 +368,7 @@ export interface Database {
       event_type: 'meetup' | 'call' | 'event' | 'follow-up'
       priority_level: 'low' | 'medium' | 'high'
       achievement_category: 'milestone' | 'streak' | 'engagement' | 'growth' | 'special' | 'meetings' | 'diversity' | 'productivity' | 'events' | 'digital' | 'quality' | 'communication' | 'consistency' | 'organization' | 'alumni' | 'mentorship' | 'learning'
+      activity_type: 'message' | 'meeting' | 'connection' | 'followup' | 'note' | 'call' | 'email'
     }
     CompositeTypes: {
       [_ in never]: never

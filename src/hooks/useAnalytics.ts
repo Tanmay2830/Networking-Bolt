@@ -75,6 +75,42 @@ export function useAnalytics(contacts: Contact[], events: Event[], goals: Goal[]
     // Earned achievements
     const earnedAchievements = achievements.filter(a => a.earned).length;
 
+    // Calculate monthly statistics for the last 6 months
+    const monthlyStats = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = new Date(currentYear, currentMonth - i, 1);
+      const month = monthDate.getMonth();
+      const year = monthDate.getFullYear();
+      const monthName = monthDate.toLocaleDateString('en-US', { month: 'short' });
+
+      // Count connections added in this month
+      const connectionsInMonth = contacts.filter(contact => {
+        const addedDate = new Date(contact.addedDate);
+        return addedDate.getMonth() === month && addedDate.getFullYear() === year;
+      }).length;
+
+      // Count meetings in this month
+      const meetingsInMonth = events.filter(event => {
+        const eventDate = new Date(event.date);
+        return eventDate.getMonth() === month && eventDate.getFullYear() === year;
+      }).length;
+
+      // Estimate messages based on active contacts and interactions
+      // For now, use a calculation based on contacts contacted in that month
+      const messagesInMonth = contacts.filter(contact => {
+        if (!contact.lastInteractionDate) return false;
+        const interactionDate = new Date(contact.lastInteractionDate);
+        return interactionDate.getMonth() === month && interactionDate.getFullYear() === year;
+      }).length * 2; // Assuming 2 messages per interaction on average
+
+      monthlyStats.push({
+        month: monthName,
+        connections: connectionsInMonth,
+        messages: messagesInMonth,
+        meetings: meetingsInMonth
+      });
+    }
+
     return {
       totalContacts: contacts.length,
       monthlyConnections,
@@ -96,7 +132,8 @@ export function useAnalytics(contacts: Contact[], events: Event[], goals: Goal[]
       contactsByStatus,
       completedGoals,
       totalGoals,
-      goalCompletionRate: Math.round(goalCompletionRate)
+      goalCompletionRate: Math.round(goalCompletionRate),
+      monthlyStats
     };
   }, [contacts, events, goals, achievements, streakData]);
 

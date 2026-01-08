@@ -89,12 +89,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
     }
   }, [analytics.totalContacts, analytics.currentStreak, events.length, achievements, onUpdateAchievement]);
 
-  const monthlyStats = [
-    { month: 'Oct', connections: 12, messages: 28, meetings: 6 },
-    { month: 'Nov', connections: 18, messages: 35, meetings: 8 },
-    { month: 'Dec', connections: 22, messages: 41, meetings: 12 },
-    { month: 'Jan', connections: 34, messages: 67, meetings: 18 }
-  ];
+  const monthlyStats = analytics.monthlyStats;
 
   const exportAnalytics = () => {
     const analyticsData = {
@@ -181,7 +176,7 @@ const Analytics: React.FC<AnalyticsProps> = ({
   };
 
   const handleDeleteAchievement = (achievementId: string) => {
-    setAchievements(achievements.filter(a => a.id !== achievementId));
+    onDeleteAchievement(achievementId);
   };
 
   return (
@@ -365,49 +360,61 @@ const Analytics: React.FC<AnalyticsProps> = ({
       <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-gray-200/50 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-6">Monthly Progress</h3>
         <div className="space-y-6">
-          {monthlyStats.map((stat, index) => (
-            <div key={stat.month} className="flex items-center space-x-4">
-              <div className="w-12 text-sm font-medium text-gray-600">{stat.month}</div>
-              <div className="flex-1 grid grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Connections</span>
-                    <span className="font-medium">{stat.connections}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${(stat.connections / 40) * 100}%` }}
-                    ></div>
+          {monthlyStats.length > 0 ? (
+            (() => {
+              const maxConnections = Math.max(...monthlyStats.map(s => s.connections), 1);
+              const maxMessages = Math.max(...monthlyStats.map(s => s.messages), 1);
+              const maxMeetings = Math.max(...monthlyStats.map(s => s.meetings), 1);
+
+              return monthlyStats.map((stat) => (
+                <div key={stat.month} className="flex items-center space-x-4">
+                  <div className="w-12 text-sm font-medium text-gray-600">{stat.month}</div>
+                  <div className="flex-1 grid grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Connections</span>
+                        <span className="font-medium">{stat.connections}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${(stat.connections / maxConnections) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Messages</span>
+                        <span className="font-medium">{stat.messages}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${(stat.messages / maxMessages) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Meetings</span>
+                        <span className="font-medium">{stat.meetings}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-orange-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${(stat.meetings / maxMeetings) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Messages</span>
-                    <span className="font-medium">{stat.messages}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${(stat.messages / 80) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Meetings</span>
-                    <span className="font-medium">{stat.meetings}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-orange-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${(stat.meetings / 20) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
+              ));
+            })()
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No activity data yet. Start adding contacts and scheduling meetings to see your progress!</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
