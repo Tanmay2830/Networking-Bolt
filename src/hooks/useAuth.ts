@@ -43,23 +43,41 @@ export function useAuthProvider(): AuthContextType {
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.email || 'No user');
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
       } else {
+        setProfile(null);
         setIsLoading(false);
       }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email || 'No user');
+
       (async () => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
           setProfile(null);
           setIsLoading(false);
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            await fetchProfile(session.user.id);
+          } else {
+            setProfile(null);
+            setIsLoading(false);
+          }
+        } else {
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            await fetchProfile(session.user.id);
+          } else {
+            setProfile(null);
+            setIsLoading(false);
+          }
         }
       })();
     });
@@ -74,6 +92,7 @@ export function useAuthProvider(): AuthContextType {
     }
 
     try {
+      console.log(`Fetching profile for user ${userId}, attempt ${retryCount + 1}`);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -82,19 +101,27 @@ export function useAuthProvider(): AuthContextType {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        setProfile(null);
         setIsLoading(false);
         return;
       }
 
-      if (!data && retryCount < 3) {
-        // Profile might not be created yet, retry after a short delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+      if (!data && retryCount < 5) {
+        console.log('Profile not found, retrying...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
         return fetchProfile(userId, retryCount + 1);
       }
 
-      setProfile(data);
+      if (!data) {
+        console.error('Profile not found after retries for user:', userId);
+        setProfile(null);
+      } else {
+        console.log('Profile loaded:', data.email);
+        setProfile(data);
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Exception fetching profile:', error);
+      setProfile(null);
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +133,7 @@ export function useAuthProvider(): AuthContextType {
     }
 
     try {
-      setIsLoading(true);
+      console.log('Signing up user:', email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -118,19 +145,15 @@ export function useAuthProvider(): AuthContextType {
       });
 
       if (error) {
+        console.error('Signup error:', error);
         return { success: false, error: error.message };
       }
 
-      // Wait for profile to be created
-      if (data.user) {
-        await fetchProfile(data.user.id);
-      }
-
+      console.log('Signup successful, user:', data.user?.email);
       return { success: true };
     } catch (error) {
+      console.error('Signup exception:', error);
       return { success: false, error: 'An unexpected error occurred' };
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -140,26 +163,22 @@ export function useAuthProvider(): AuthContextType {
     }
 
     try {
-      setIsLoading(true);
+      console.log('Signing in user:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('Sign in error:', error);
         return { success: false, error: error.message };
       }
 
-      // Ensure profile is fetched
-      if (data.user) {
-        await fetchProfile(data.user.id);
-      }
-
+      console.log('Sign in successful, user:', data.user?.email);
       return { success: true };
     } catch (error) {
+      console.error('Sign in exception:', error);
       return { success: false, error: 'An unexpected error occurred' };
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -167,14 +186,11 @@ export function useAuthProvider(): AuthContextType {
     if (!supabase) return;
 
     try {
-      setIsLoading(true);
-      setUser(null);
-      setProfile(null);
+      console.log('Signing out user');
       await supabase.auth.signOut();
+      console.log('Sign out successful');
     } catch (error) {
       console.error('Error signing out:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
